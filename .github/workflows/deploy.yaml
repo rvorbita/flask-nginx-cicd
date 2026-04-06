@@ -10,49 +10,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout
+      # 📥 Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 🔐 Login to Docker Hub
+      # 🔐 Login to Docker Hub
+      - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       # 🐳 Build Flask Image
       - name: Build Flask Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest -f flask-nginx-app/Dockerfile .
-      
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
+
       - name: Push Flask Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
       # 🐳 Build Nginx Image
       - name: Build Nginx Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest -f flask-nginx-app/nginx/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest ./nginx
 
       - name: Push Nginx Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
-      # 🔑 Setup SSH
+      # 🔑 Setup SSH (FIXED)
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 🚀 Deploy
+      # 🚀 Deploy to EC2
       - name: Deploy Application to EC2
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
 
+            # Create directory if not exists
             mkdir -p /home/${{ secrets.EC2_USER }}/flask-nginx-app
             cd /home/${{ secrets.EC2_USER }}/flask-nginx-app
 
+            # Stop existing containers
             docker compose down || true
 
+            # Pull latest images
             docker pull ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
+            # Run containers
             docker compose up -d
 
           EOF
