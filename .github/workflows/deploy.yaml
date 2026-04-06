@@ -14,11 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 🐳 Set up QEMU (for multi-platform builds)
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      # 🐳 Set up Docker Buildx
+      # 🐳 Setup Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -28,13 +24,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
+
       # 🐳 Build and Push Flask Image
       - name: Build and Push Flask Image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./flask-nginx-app/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
@@ -42,8 +38,8 @@ jobs:
       - name: Build and Push Nginx Image
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./flask-nginx-app/nginx/Dockerfile
+          context: ./nginx
+          file: ./nginx/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
@@ -51,27 +47,23 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 🚀 Deploy to EC2
+      # 🚀 Deploy
       - name: Deploy Application to EC2
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
 
-            # Create directory if not exists
             mkdir -p /home/${{ secrets.EC2_USER }}/flask-nginx-app
             cd /home/${{ secrets.EC2_USER }}/flask-nginx-app
 
-            # Stop existing containers
-            docker compose down || true
+            docker-compose down || true
 
-            # Pull latest images
             docker pull ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
-            # Run containers
-            docker compose up -d
+            docker-compose up -d
 
           EOF
