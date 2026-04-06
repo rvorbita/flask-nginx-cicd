@@ -1,33 +1,38 @@
 #!/bin/bash
 
-# 1. Update the system packages
+# 1. Update system packages
 echo "Updating system..."
-sudo yum update -y
+sudo dnf update -y
 
-# 2. Install Docker 
-# Amazon Linux 2023 uses the 'docker' package directly, while AL2 uses 'amazon-linux-extras'
-# This command is the most compatible way to fetch the AWS-optimized version
-echo "Installing Docker..."
-sudo yum install -y docker
+# 2. Remove any old/incorrect Docker repos to avoid conflicts
+sudo rm -f /etc/yum.repos.d/docker-ce.repo
+sudo dnf clean all
+sudo dnf makecache
 
-# 3. Install Docker Compose (V2)
-# The best practice is to install the Compose plugin rather than the old standalone binary
-echo "Installing Docker Compose..."
-sudo mkdir -p /usr/local/lib/docker/cli-plugins/
-# Fetching the latest stable V2 release for Linux x86_64
-sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# 3. Install Docker + Buildx + Compose plugin (native AL2023 packages)
+echo "Installing Docker, Buildx, and Docker Compose plugin..."
+sudo dnf install -y docker docker-buildx-plugin docker-compose-plugin
 
-# 4. Start and enable the Docker service
+# 4. Start and enable Docker service
 echo "Starting Docker service..."
 sudo systemctl start docker
-sudo systemctl enable docker
+sudo systemctl enable --now docker
 
-# 5. Apply Best Practice Permissions
-# Adding the user to the docker group allows running commands without 'sudo'
-echo "Configuring user permissions..."
+# 5. Configure user permissions
+echo "Adding ec2-user to docker group..."
 sudo usermod -aG docker ec2-user
+newgrp docker
 
-# 6. Finalize
-echo "Installation complete. NOTE: Please log out and log back in for group changes to take effect."
-echo "Verify with: docker compose version"
+# 6. Optional: Enable BuildKit for faster builds
+echo "Enabling Docker BuildKit..."
+echo 'export DOCKER_BUILDKIT=1' >> /home/ec2-user/.bashrc
+export DOCKER_BUILDKIT=1
+
+# 7. Verify installations
+echo "Installation complete. Verify with:"
+docker --version
+docker buildx version
+docker compose version
+
+echo "Docker, Buildx, and Docker Compose plugin have been installed successfully!"
+
