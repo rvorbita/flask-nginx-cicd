@@ -21,15 +21,15 @@ jobs:
       # 🐳 Build Flask Image
       - name: Build Flask Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest -f flask-nginx-app/Dockerfile .
 
       - name: Push Flask Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
-      # 🐳 Build Nginx Image
+# 🐳 Build Nginx Image
       - name: Build Nginx Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest ./nginx
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest -f flask-nginx-app/nginx/Dockerfile .
 
       - name: Push Nginx Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
