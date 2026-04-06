@@ -1,11 +1,11 @@
 services:
   app:
-    image: YOUR_DOCKERHUB_USERNAME/flask-app:latest
+    image: rvorbita/flask-app:latest
     ports:
       - "5000:5000"
 
   nginx:
-    image: YOUR_DOCKERHUB_USERNAME/nginx-proxy:latest
+    image: rvorbita/nginx-proxy:latest
     ports:
       - "80:80"
     depends_on:
