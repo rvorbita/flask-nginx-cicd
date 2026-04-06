@@ -19,7 +19,7 @@ jobs:
       # 🐳 Build Flask Image
       - name: Build Flask Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest -f Dockerfile.app .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
       
       - name: Push Flask Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
