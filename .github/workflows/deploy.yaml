@@ -47,7 +47,7 @@ jobs:
 
           # Copy entire flask-nginx-app directory
           scp -r -i ~/.ssh/id_rsa ./flask-nginx-app/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/flask-nginx-app/
-          
+
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
 
             # Create directory if not exists
@@ -55,13 +55,13 @@ jobs:
             cd /home/${{ secrets.EC2_USER }}/flask-nginx-app
 
             # Stop existing containers
-            docker compose down || true
+            docker-compose down || true
 
             # Pull latest images
             docker pull ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
             # Run containers
-            docker compose up -d
+            docker-compose up -d
 
           EOF
