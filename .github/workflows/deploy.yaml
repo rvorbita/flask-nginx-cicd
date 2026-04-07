@@ -44,6 +44,10 @@ jobs:
       # 🚀 Deploy to EC2
       - name: Deploy Application to EC2
         run: |
+
+          # Copy entire flask-nginx-app directory
+          scp -r -i ~/.ssh/id_rsa ./flask-nginx-app/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/flask-nginx-app/
+          
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
 
             # Create directory if not exists
