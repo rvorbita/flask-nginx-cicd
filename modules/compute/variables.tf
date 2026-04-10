@@ -45,3 +45,7 @@ variable "user_data" {
   
 }
 
+variable "target_group_arn" {
+  description = "The ARN of the ALB Target Group to attach the instance to"
+  type        = string
+}

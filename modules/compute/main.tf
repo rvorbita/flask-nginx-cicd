@@ -17,3 +17,11 @@ resource "aws_instance" "compute" {
     }
     
 }
+
+
+# Place this inside modules/compute/main.tf
+resource "aws_lb_target_group_attachment" "this" {
+  target_group_arn = var.target_group_arn
+  target_id        = aws_instance.compute.id
+  port             = 80
+}
