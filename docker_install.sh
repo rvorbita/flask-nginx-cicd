@@ -55,13 +55,13 @@ cd $APP_DIR
 # 10. Dynamically create the docker-compose.yml file
 # IMPORTANT: Replace 'yourdockerhubuser' with your actual Docker Hub username!
 cat <<EOF > docker-compose.yml
-version: '3.8'
+
 services:
   web:
-    image: yourdockerhubuser/flask-app:latest
+    image: rvorbita/flask-app:latest
     restart: always
   nginx:
-    image: yourdockerhubuser/nginx-proxy:latest
+    image: rvorbita/nginx-proxy:latest
     ports:
       - "80:80"
     depends_on:
