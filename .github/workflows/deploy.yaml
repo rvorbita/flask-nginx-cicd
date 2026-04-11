@@ -1,4 +1,4 @@
-name: Deploy Flask + Nginx App
+name: Deploy Flask + Nginx App to ASG
 
 on:
   push:
@@ -6,62 +6,43 @@ on:
       - dev
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
-      # 📥 Checkout repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 🔐 Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      # 🐳 Build and Push Flask Image
       - name: Build and Push Flask Image
         run: |
           docker build -f ./flask-nginx-app/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
-      # 🐳 Build and Push Nginx Image
       - name: Build and Push Nginx Image
         run: |
           docker build -f ./flask-nginx-app/nginx/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
 
-      # 🔑 Setup SSH
-      - name: Setup SSH
+  # 🚀 New Deployment Step: Tell AWS to cycle the servers
+  instance-refresh:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1 # Adjust if your VPC is in a different region
+
+      - name: Start ASG Rolling Update
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      # 🚀 Deploy to EC2
-      - name: Deploy Application to EC2
-        run: |
-
-          # Copy entire flask-nginx-app directory
-          scp -r -i ~/.ssh/id_rsa ./flask-nginx-app/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/flask-nginx-app/
-
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
-
-            # Create directory if not exists
-            mkdir -p /home/${{ secrets.EC2_USER }}/flask-nginx-app
-            cd /home/${{ secrets.EC2_USER }}/flask-nginx-app
-
-            # Stop existing containers
-            docker-compose down || true
-
-            # Pull latest images
-            docker pull ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
-            docker pull ${{ secrets.DOCKER_USERNAME }}/nginx-proxy:latest
-
-            # Run containers
-            docker-compose up -d
-
-          EOF
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "flask-app-asg" \
+            --strategy Rolling \
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 300}'
