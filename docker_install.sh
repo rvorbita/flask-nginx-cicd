@@ -59,7 +59,10 @@ cat <<EOF > docker-compose.yml
 services:
   web:
     image: rvorbita/flask-app:latest
+    ports:
+      - "5000:5000"
     restart: always
+
   nginx:
     image: rvorbita/nginx-proxy:latest
     ports:
