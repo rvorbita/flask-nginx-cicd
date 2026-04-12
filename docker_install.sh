@@ -57,7 +57,7 @@ cd $APP_DIR
 cat <<EOF > docker-compose.yml
 
 services:
-  web:
+  app:
     image: rvorbita/flask-app:latest
     ports:
       - "5000:5000"
@@ -68,7 +68,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - web
+      - app
     restart: always
 EOF
 
